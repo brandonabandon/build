@@ -26,11 +26,10 @@ csv_to_json_list = $(call _json_list,$(comma),$(1))
 
 # Create soong.variables with copies of makefile settings.  Runs every build,
 # but only updates soong.variables if it changes
-SOONG_VARIABLES_TMP := $(SOONG_VARIABLES).$$$$
-$(SOONG_VARIABLES): FORCE
-	$(hide) mkdir -p $(dir $@)
+SOONG_VARIABLES_TMP := $(shell mktemp -u)
+include vendor/extras/soong/soong_config.mk
+$(SOONG_VARIABLES): FORCE screwd_soong
 	$(hide) (\
-	echo '{'; \
 	echo '    "Make_suffix": "-$(TARGET_PRODUCT)",'; \
 	echo ''; \
 	echo '    "Platform_sdk_version": $(PLATFORM_SDK_VERSION),'; \
@@ -84,14 +83,13 @@ $(SOONG_VARIABLES): FORCE
 	echo '    "Override_rs_driver": "$(OVERRIDE_RS_DRIVER)",'; \
 	echo '    "Treble": $(if $(filter true,$(PRODUCT_FULL_TREBLE)),true,false),'; \
 	echo '    "Pdk": $(if $(filter true,$(TARGET_BUILD_PDK)),true,false),'; \
-	echo '    "Libart_img_base": "$(LIBART_IMG_BASE)",'; \
 	echo ''; \
 	echo '    "ArtUseReadBarrier": $(if $(filter false,$(PRODUCT_ART_USE_READ_BARRIER)),false,true),'; \
 	echo ''; \
 	echo '    "BtConfigIncludeDir": "$(BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR)",'; \
 	echo ''; \
 	echo '    "DeviceKernelHeaders": $(call json_list,$(strip $(TARGET_PROJECT_SYSTEM_INCLUDES)))'; \
-	echo '}') > $(SOONG_VARIABLES_TMP); \
+	echo '}') >> $(SOONG_VARIABLES_TMP); \
 	if ! cmp -s $(SOONG_VARIABLES_TMP) $(SOONG_VARIABLES); then \
 	  mv $(SOONG_VARIABLES_TMP) $(SOONG_VARIABLES); \
 	else \
